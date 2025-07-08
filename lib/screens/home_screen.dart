@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Track> _tracks = [];
   bool _isLoading = false;
+  List<DownloadStatus> _downloads = [];
 
   Future<void> _searchTracks() async {
     final query = _searchController.text.trim();
@@ -86,34 +87,41 @@ class _HomeScreenState extends State<HomeScreen> {
       '_',
     );
 
-    try {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Скачивание: ${track.artist} — ${track.title}'),
-          ),
-        );
-      }
+    final status = DownloadStatus(track: track);
+    setState(() {
+      _downloads.add(status);
+    });
 
+    try {
       await DownloadService.downloadFile(
         track.url,
         folderPath,
         fileName,
         onProgress: (received, total) {
           if (total != -1) {
-            final percent = (received / total * 100).toStringAsFixed(0);
-            debugPrint('Скачивание ${track.title}: $percent%');
+            final percent = (received / total * 100);
+            debugPrint(
+              'Скачивание ${track.title}: ${percent.toStringAsFixed(0)}%',
+            );
+
+            setState(() {
+              status.progress = percent;
+            });
           }
         },
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Готово: ${track.artist} — ${track.title}')),
-        );
-      }
+      // после завершения — удаляем из списка
+      setState(() {
+        _downloads.remove(status);
+      });
     } catch (e) {
       debugPrint('Ошибка при скачивании: $e');
+
+      setState(() {
+        status.isError = true;
+      });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ошибка при скачивании ${track.title}')),
@@ -138,6 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
+          // поле поиска
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Row(
@@ -176,14 +185,55 @@ class _HomeScreenState extends State<HomeScreen> {
                   return TrackCard(
                     track: track,
                     onTap: () {
-                      _downloadTrack(track); // тут у нас метод из HomeScreen
+                      _downloadTrack(track);
                     },
                   );
                 },
+              ),
+            ),
+
+          // прогресс загрузок
+          if (_downloads.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                children: _downloads.map((d) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${d.track.artist} — ${d.track.title}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      const SizedBox(height: 2),
+                      LinearProgressIndicator(
+                        value: d.isError ? null : (d.progress / 100),
+                        color: d.isError ? Colors.red : Colors.green,
+                        backgroundColor: Colors.grey[300],
+                        minHeight: 6,
+                      ),
+                      const SizedBox(height: 6),
+                    ],
+                  );
+                }).toList(),
               ),
             ),
         ],
       ),
     );
   }
+}
+
+class DownloadStatus {
+  final Track track;
+  double progress; // от 0 до 100
+  bool isCompleted;
+  bool isError;
+
+  DownloadStatus({
+    required this.track,
+    this.progress = 0.0,
+    this.isCompleted = false,
+    this.isError = false,
+  });
 }
