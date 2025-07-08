@@ -1,0 +1,132 @@
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+import '../widgets/track_card.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class Track {
+  final String artist;
+  final String title;
+  final String url;
+
+  Track({required this.artist, required this.title, required this.url});
+
+  factory Track.fromJson(Map<String, dynamic> json) {
+    return Track(
+      artist: json['artist'],
+      title: json['title'],
+      url: json['url'],
+    );
+  }
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  List<Track> _tracks = [];
+  bool _isLoading = false;
+
+  Future<void> _searchTracks() async {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _tracks.clear();
+    });
+
+    try {
+      final response = await http.get(Uri.parse(
+          'http://192.168.0.214:5000/api/search?q=${Uri.encodeComponent(query)}'));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _tracks = data.map((item) => Track.fromJson(item)).toList();
+        });
+      } else {
+        throw Exception('Ошибка сервера');
+      }
+    } catch (e) {
+      debugPrint('Ошибка: $e');
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Музыка Загрузчик'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () {
+              Navigator.pushNamed(context, '/menu');
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      hintText: 'Введите запрос',
+                      border: OutlineInputBorder(),
+                    ),
+                    onSubmitted: (_) => _searchTracks(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: _searchTracks,
+                  child: const Text('Поиск'),
+                ),
+              ],
+            ),
+          ),
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_tracks.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('Нет результатов'),
+            )
+          else
+            Expanded(
+              child: ListView.builder(
+                itemCount: _tracks.length,
+                itemBuilder: (context, index) {
+                  final track = _tracks[index];
+                  return TrackCard(
+                    track: track,
+                    onTap: () {
+                      // пока заглушка — в следующем этапе будет скачивание
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Выбран: ${track.artist} — ${track.title}')),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
