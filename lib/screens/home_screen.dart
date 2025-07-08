@@ -133,7 +133,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Загрузчик'),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Image.asset('assets/ic_launcher.png', width: 32, height: 32),
+        ),
+        centerTitle: true,
+        title: const Text('Pirate Tunes'),
         actions: [
           IconButton(
             icon: const Icon(Icons.menu),
@@ -153,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Введите запрос',
+                    hintText: 'Название трека и/или исполнителя',
                     border: const OutlineInputBorder(),
                     suffixIcon: _searchController.text.isEmpty
                         ? null

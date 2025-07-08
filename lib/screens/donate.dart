@@ -17,7 +17,9 @@ class DonateScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Поддержать проект')),
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text('Поддержать проект')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

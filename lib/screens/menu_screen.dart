@@ -40,7 +40,9 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Меню')),
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text('Меню')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
