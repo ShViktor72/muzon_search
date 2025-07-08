@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:muzon_search/screens/donate.dart';
 import 'screens/home_screen.dart';
 import 'screens/menu_screen.dart';
 
@@ -20,6 +21,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const HomeScreen(),
         '/menu': (context) => const MenuScreen(),
+        '/donate': (context) => const DonateScreen(),
       },
     );
   }

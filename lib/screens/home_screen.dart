@@ -111,7 +111,6 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       );
 
-      // после завершения — удаляем из списка
       setState(() {
         _downloads.remove(status);
       });
@@ -134,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Музыка Загрузчик'),
+        title: const Text('Загрузчик'),
         actions: [
           IconButton(
             icon: const Icon(Icons.menu),
@@ -144,79 +143,101 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // поле поиска
           Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      hintText: 'Введите запрос',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => _searchTracks(),
+                // Поле поиска на всю ширину с иконкой очистки
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Введите запрос',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: _searchController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                              });
+                            },
+                          ),
+                  ),
+                  onChanged: (value) {
+                    setState(() {}); // чтобы показывать/убирать иконку очистки
+                  },
+                  onSubmitted: (_) => _searchTracks(),
+                ),
+                const SizedBox(height: 12),
+
+                // Кнопка поиска на всю ширину
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _searchTracks,
+                    child: const Text('Поиск', style: TextStyle(fontSize: 18)),
                   ),
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: _searchTracks,
-                  child: const Text('Поиск'),
-                ),
+                const SizedBox(height: 16),
+
+                // Результаты поиска
+                if (_tracks.isEmpty)
+                  const Text('Введите запрос и нажмите Поиск')
+                else
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _tracks.length,
+                      itemBuilder: (context, index) {
+                        final track = _tracks[index];
+                        return TrackCard(
+                          track: track,
+                          onTap: () {
+                            _downloadTrack(track);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+
+                // Прогресс загрузок
+                if (_downloads.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      children: _downloads.map((d) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${d.track.artist} — ${d.track.title}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            const SizedBox(height: 2),
+                            LinearProgressIndicator(
+                              value: d.isError ? null : (d.progress / 100),
+                              color: d.isError ? Colors.red : Colors.green,
+                              backgroundColor: Colors.grey[300],
+                              minHeight: 6,
+                            ),
+                            const SizedBox(height: 6),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
               ],
             ),
           ),
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator())
-          else if (_tracks.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text('Нет результатов'),
-            )
-          else
-            Expanded(
-              child: ListView.builder(
-                itemCount: _tracks.length,
-                itemBuilder: (context, index) {
-                  final track = _tracks[index];
-                  return TrackCard(
-                    track: track,
-                    onTap: () {
-                      _downloadTrack(track);
-                    },
-                  );
-                },
-              ),
-            ),
 
-          // прогресс загрузок
-          if (_downloads.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: _downloads.map((d) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${d.track.artist} — ${d.track.title}',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      const SizedBox(height: 2),
-                      LinearProgressIndicator(
-                        value: d.isError ? null : (d.progress / 100),
-                        color: d.isError ? Colors.red : Colors.green,
-                        backgroundColor: Colors.grey[300],
-                        minHeight: 6,
-                      ),
-                      const SizedBox(height: 6),
-                    ],
-                  );
-                }).toList(),
-              ),
+          // Анимация загрузки поверх всего
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.4),
+              child: const Center(child: CircularProgressIndicator()),
             ),
         ],
       ),
@@ -226,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class DownloadStatus {
   final Track track;
-  double progress; // от 0 до 100
+  double progress;
   bool isCompleted;
   bool isError;
 
