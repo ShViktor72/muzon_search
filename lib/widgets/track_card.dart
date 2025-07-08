@@ -13,8 +13,9 @@ class TrackCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: ListTile(
         title: Text('${track.artist} — ${track.title}'),
-        onTap: onTap,
+        onTap: onTap, // вот здесь вызывается переданная извне функция
       ),
     );
   }
 }
+
